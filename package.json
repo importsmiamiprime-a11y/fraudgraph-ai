@@ -1,0 +1,10 @@
+{
+  "name": "fraudgraph-ai",
+  "version": "0.1.0",
+  "description": "FraudGraph AI - plataforma de inteligencia investigativa baseada em dados publicos",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0"
+  }
+}
