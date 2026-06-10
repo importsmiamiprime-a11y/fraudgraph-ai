@@ -1,0 +1,1704 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FraudGraph AI — Inteligência Investigativa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  /* ─── RESET & BASE ─── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #070b0f;
+    --bg2:       #0c1117;
+    --bg3:       #111820;
+    --border:    #1e2d3d;
+    --border2:   #243447;
+    --amber:     #e8a838;
+    --amber-dim: #8a5f1a;
+    --red:       #e03e3e;
+    --red-dim:   #5c1a1a;
+    --green:     #2ecc71;
+    --green-dim: #1a4d2e;
+    --blue:      #3da9fc;
+    --blue-dim:  #0d3a5c;
+    --text:      #c8d6e5;
+    --text-dim:  #5a7080;
+    --text-xs:   #3d5060;
+    --mono:      'DM Mono', monospace;
+    --sans:      'Syne', sans-serif;
+    --code:      'Space Mono', monospace;
+    --glow-amber: 0 0 20px rgba(232,168,56,0.15);
+    --glow-red:   0 0 20px rgba(224,62,62,0.15);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    min-height: 100vh;
+    overflow-x: hidden;
+    cursor: crosshair;
+  }
+
+  /* ─── SCANLINES OVERLAY ─── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.08) 2px,
+      rgba(0,0,0,0.08) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* ─── NOISE TEXTURE ─── */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    opacity: 0.4;
+    pointer-events: none;
+    z-index: 9998;
+  }
+
+  /* ─── HEADER ─── */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(7,11,15,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    text-decoration: none;
+  }
+
+  .logo-icon {
+    width: 32px;
+    height: 32px;
+    position: relative;
+  }
+
+  .logo-icon svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .logo-text {
+    font-family: var(--sans);
+    font-weight: 800;
+    font-size: 1.1rem;
+    color: #fff;
+    letter-spacing: -0.02em;
+  }
+
+  .logo-text span {
+    color: var(--amber);
+  }
+
+  .header-status {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    font-family: var(--code);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .status-dot {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  .header-nav {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .nav-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: var(--code);
+    font-size: 0.65rem;
+    padding: 0.3rem 0.75rem;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    transition: all 0.2s;
+  }
+
+  .nav-btn:hover {
+    border-color: var(--amber);
+    color: var(--amber);
+  }
+
+  /* ─── MAIN LAYOUT ─── */
+  main {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+
+  /* ─── HERO SEARCH ─── */
+  .hero {
+    padding: 4rem 0 3rem;
+    position: relative;
+  }
+
+  .hero-eyebrow {
+    font-family: var(--code);
+    font-size: 0.7rem;
+    color: var(--amber);
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .hero-eyebrow::before {
+    content: '';
+    display: inline-block;
+    width: 24px;
+    height: 1px;
+    background: var(--amber);
+  }
+
+  .hero-title {
+    font-family: var(--sans);
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    color: #fff;
+    margin-bottom: 1rem;
+  }
+
+  .hero-title em {
+    font-style: normal;
+    color: var(--amber);
+    position: relative;
+  }
+
+  .hero-subtitle {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    max-width: 520px;
+    line-height: 1.8;
+    margin-bottom: 2.5rem;
+  }
+
+  /* ─── SEARCH BOX ─── */
+  .search-wrap {
+    position: relative;
+    max-width: 700px;
+  }
+
+  .search-box {
+    display: flex;
+    border: 1px solid var(--border2);
+    background: var(--bg2);
+    transition: all 0.3s;
+    position: relative;
+  }
+
+  .search-box:focus-within {
+    border-color: var(--amber);
+    box-shadow: var(--glow-amber), inset 0 0 0 1px rgba(232,168,56,0.1);
+  }
+
+  .search-box::before {
+    content: 'CNPJ / RAZÃO SOCIAL';
+    position: absolute;
+    top: -22px;
+    left: 0;
+    font-family: var(--code);
+    font-size: 0.6rem;
+    color: var(--text-xs);
+    letter-spacing: 0.15em;
+  }
+
+  .search-input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    padding: 1rem 1.25rem;
+    font-family: var(--code);
+    font-size: 0.95rem;
+    color: #fff;
+    letter-spacing: 0.05em;
+  }
+
+  .search-input::placeholder {
+    color: var(--text-xs);
+  }
+
+  .search-btn {
+    background: var(--amber);
+    border: none;
+    color: #000;
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 0.8rem;
+    padding: 0 1.75rem;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .search-btn:hover {
+    background: #f0b84a;
+  }
+
+  .search-btn:active {
+    transform: scale(0.98);
+  }
+
+  .search-tags {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .tag {
+    font-family: var(--code);
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    padding: 0.25rem 0.65rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .tag:hover {
+    border-color: var(--amber-dim);
+    color: var(--amber);
+  }
+
+  /* ─── STATS BAR ─── */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    margin: 3rem 0;
+  }
+
+  .stat-cell {
+    background: var(--bg2);
+    padding: 1.25rem 1.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-cell::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--amber);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.4s ease;
+  }
+
+  .stat-cell:hover::after {
+    transform: scaleX(1);
+  }
+
+  .stat-label {
+    font-family: var(--code);
+    font-size: 0.6rem;
+    color: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-bottom: 0.5rem;
+  }
+
+  .stat-value {
+    font-family: var(--sans);
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1;
+  }
+
+  .stat-value.amber { color: var(--amber); }
+  .stat-value.red   { color: var(--red); }
+  .stat-value.green { color: var(--green); }
+
+  .stat-sub {
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    margin-top: 0.3rem;
+  }
+
+  /* ─── DEMO RESULT CARD ─── */
+  .section-label {
+    font-family: var(--code);
+    font-size: 0.65rem;
+    color: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .result-grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  /* ─── COMPANY CARD ─── */
+  .company-card {
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    padding: 1.75rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .company-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--amber), transparent);
+  }
+
+  .company-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+    gap: 1rem;
+  }
+
+  .company-name {
+    font-family: var(--sans);
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.3;
+  }
+
+  .company-cnpj {
+    font-family: var(--code);
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    margin-top: 0.25rem;
+    letter-spacing: 0.1em;
+  }
+
+  .status-badge {
+    font-family: var(--code);
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    padding: 0.3rem 0.7rem;
+    border: 1px solid;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .badge-active   { color: var(--green); border-color: var(--green); background: rgba(46,204,113,0.05); }
+  .badge-inactive { color: var(--red);   border-color: var(--red);   background: rgba(224,62,62,0.05); }
+  .badge-warning  { color: var(--amber); border-color: var(--amber); background: rgba(232,168,56,0.05); }
+
+  .company-meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .meta-item {
+    border-left: 2px solid var(--border);
+    padding-left: 0.75rem;
+  }
+
+  .meta-key {
+    font-family: var(--code);
+    font-size: 0.6rem;
+    color: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 0.25rem;
+  }
+
+  .meta-val {
+    font-size: 0.8rem;
+    color: var(--text);
+    line-height: 1.4;
+  }
+
+  .meta-val.highlight { color: var(--amber); }
+  .meta-val.alert     { color: var(--red); }
+
+  /* ─── RISK SCORE CARD ─── */
+  .risk-card {
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    padding: 1.75rem;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .risk-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--red), transparent);
+  }
+
+  .risk-label {
+    font-family: var(--code);
+    font-size: 0.6rem;
+    color: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-bottom: 1rem;
+  }
+
+  .risk-score-wrap {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .score-ring {
+    position: relative;
+    width: 90px;
+    height: 90px;
+    flex-shrink: 0;
+  }
+
+  .score-ring svg {
+    transform: rotate(-90deg);
+    width: 90px;
+    height: 90px;
+  }
+
+  .score-ring-bg {
+    fill: none;
+    stroke: var(--border2);
+    stroke-width: 6;
+  }
+
+  .score-ring-fill {
+    fill: none;
+    stroke: var(--red);
+    stroke-width: 6;
+    stroke-linecap: round;
+    stroke-dasharray: 245;
+    stroke-dashoffset: 55; /* 78/100 score */
+    filter: drop-shadow(0 0 6px rgba(224,62,62,0.6));
+    transition: stroke-dashoffset 1s ease;
+  }
+
+  .score-number {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .score-num {
+    font-family: var(--sans);
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--red);
+    line-height: 1;
+  }
+
+  .score-max {
+    font-family: var(--code);
+    font-size: 0.55rem;
+    color: var(--text-xs);
+  }
+
+  .risk-level {
+    flex: 1;
+  }
+
+  .risk-level-label {
+    font-family: var(--sans);
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--red);
+    margin-bottom: 0.25rem;
+  }
+
+  .risk-level-sub {
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+
+  /* ─── RISK FLAGS ─── */
+  .flags-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    flex: 1;
+  }
+
+  .flag-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.6rem 0.75rem;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    font-size: 0.72rem;
+    line-height: 1.5;
+    transition: border-color 0.2s;
+  }
+
+  .flag-item:hover { border-color: var(--border2); }
+
+  .flag-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 5px;
+  }
+
+  .flag-dot.critical { background: var(--red); box-shadow: 0 0 6px rgba(224,62,62,0.6); }
+  .flag-dot.high     { background: var(--amber); box-shadow: 0 0 6px rgba(232,168,56,0.4); }
+  .flag-dot.medium   { background: var(--blue); }
+
+  .flag-text { color: var(--text); }
+  .flag-code {
+    font-family: var(--code);
+    font-size: 0.6rem;
+    color: var(--text-xs);
+    margin-top: 0.15rem;
+  }
+
+  /* ─── TABS ─── */
+  .tabs-wrap {
+    margin-bottom: 1.5rem;
+  }
+
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    gap: 0;
+  }
+
+  .tab {
+    font-family: var(--code);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 0.75rem 1.25rem;
+    color: var(--text-dim);
+    border: none;
+    background: none;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.2s;
+  }
+
+  .tab:hover { color: var(--text); }
+
+  .tab.active {
+    color: var(--amber);
+    border-bottom-color: var(--amber);
+  }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ─── CONTRACTS TABLE ─── */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.72rem;
+  }
+
+  .data-table thead tr {
+    border-bottom: 1px solid var(--border2);
+  }
+
+  .data-table th {
+    font-family: var(--code);
+    font-size: 0.58rem;
+    color: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    padding: 0.6rem 0.75rem;
+    text-align: left;
+    font-weight: 400;
+  }
+
+  .data-table td {
+    padding: 0.65rem 0.75rem;
+    color: var(--text);
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  .data-table tr:hover td {
+    background: rgba(255,255,255,0.02);
+  }
+
+  .data-table tr:last-child td { border-bottom: none; }
+
+  .td-mono {
+    font-family: var(--code);
+    color: var(--text-dim);
+    font-size: 0.68rem;
+  }
+
+  .td-value {
+    font-family: var(--sans);
+    font-weight: 700;
+    color: var(--amber);
+    white-space: nowrap;
+  }
+
+  .td-agency { color: var(--blue); font-size: 0.68rem; }
+
+  .flag-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-family: var(--code);
+    font-size: 0.58rem;
+    padding: 0.15rem 0.5rem;
+    border: 1px solid;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .chip-red    { color: var(--red);   border-color: var(--red-dim);   background: rgba(224,62,62,0.06); }
+  .chip-amber  { color: var(--amber); border-color: var(--amber-dim); background: rgba(232,168,56,0.06); }
+  .chip-blue   { color: var(--blue);  border-color: var(--blue-dim);  background: rgba(61,169,252,0.06); }
+
+  /* ─── PARTNERS ─── */
+  .partners-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem;
+  }
+
+  .partner-card {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    padding: 1rem;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+
+  .partner-card:hover {
+    border-color: var(--border2);
+    background: var(--bg2);
+  }
+
+  .partner-avatar {
+    width: 36px;
+    height: 36px;
+    background: var(--border2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--sans);
+    font-weight: 800;
+    font-size: 0.9rem;
+    color: var(--amber);
+    margin-bottom: 0.75rem;
+  }
+
+  .partner-name {
+    font-family: var(--sans);
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 0.25rem;
+    line-height: 1.3;
+  }
+
+  .partner-role {
+    font-family: var(--code);
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.6rem;
+  }
+
+  .partner-flags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+
+  /* ─── GRAPH PLACEHOLDER ─── */
+  .graph-container {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    height: 380px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .graph-container canvas {
+    position: absolute;
+    inset: 0;
+  }
+
+  .graph-center-label {
+    font-family: var(--code);
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    text-align: center;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  /* ─── SOURCES ─── */
+  .sources-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .source-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.75rem;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    font-size: 0.72rem;
+    text-decoration: none;
+    color: var(--text);
+    transition: all 0.2s;
+  }
+
+  .source-item:hover {
+    border-color: var(--blue-dim);
+    color: var(--blue);
+  }
+
+  .source-icon {
+    font-size: 0.8rem;
+    flex-shrink: 0;
+    opacity: 0.6;
+  }
+
+  .source-url {
+    font-family: var(--code);
+    font-size: 0.62rem;
+    color: var(--text-dim);
+    margin-top: 0.1rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+  }
+
+  .source-date {
+    font-family: var(--code);
+    font-size: 0.6rem;
+    color: var(--text-xs);
+    flex-shrink: 0;
+  }
+
+  /* ─── REPORT BUTTON ─── */
+  .report-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    padding: 1.25rem 1.75rem;
+    margin-top: 1.5rem;
+  }
+
+  .report-info {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+  }
+
+  .report-info strong {
+    color: var(--text);
+    font-family: var(--sans);
+  }
+
+  .report-actions {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  .btn {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 0.65rem 1.4rem;
+    border: 1px solid;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .btn-primary {
+    background: var(--amber);
+    border-color: var(--amber);
+    color: #000;
+  }
+
+  .btn-primary:hover {
+    background: #f0b84a;
+    box-shadow: var(--glow-amber);
+  }
+
+  .btn-ghost {
+    background: none;
+    border-color: var(--border2);
+    color: var(--text-dim);
+  }
+
+  .btn-ghost:hover {
+    border-color: var(--text-dim);
+    color: var(--text);
+  }
+
+  /* ─── DISCLAIMER ─── */
+  .disclaimer {
+    margin-top: 3rem;
+    padding: 1rem 1.25rem;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--text-xs);
+    font-size: 0.65rem;
+    color: var(--text-xs);
+    line-height: 1.8;
+    font-family: var(--code);
+  }
+
+  .disclaimer strong { color: var(--text-dim); }
+
+  /* ─── LOADING STATE ─── */
+  .loading-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(7,11,15,0.85);
+    backdrop-filter: blur(4px);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .loading-overlay.active { display: flex; }
+
+  .loading-spinner {
+    width: 48px;
+    height: 48px;
+    border: 2px solid var(--border2);
+    border-top-color: var(--amber);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    min-width: 280px;
+  }
+
+  .loading-step {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-family: var(--code);
+    font-size: 0.68rem;
+    color: var(--text-dim);
+    opacity: 0.4;
+    transition: all 0.3s;
+  }
+
+  .loading-step.done  { opacity: 1; color: var(--green); }
+  .loading-step.active { opacity: 1; color: var(--amber); }
+
+  .step-icon { font-size: 0.75rem; }
+
+  /* ─── TOAST ─── */
+  .toast {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-left: 3px solid var(--amber);
+    padding: 0.75rem 1.25rem;
+    font-family: var(--code);
+    font-size: 0.72rem;
+    color: var(--text);
+    z-index: 300;
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    max-width: 320px;
+  }
+
+  .toast.show {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  /* ─── GRAPH CANVAS ─── */
+  #graphCanvas { border-radius: 0; }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 900px) {
+    .result-grid { grid-template-columns: 1fr; }
+    .stats-bar { grid-template-columns: 1fr 1fr; }
+    .company-meta { grid-template-columns: 1fr; }
+    header { padding: 0 1rem; }
+    .header-status { display: none; }
+    main { padding: 1rem; }
+    .hero { padding: 2rem 0 1.5rem; }
+  }
+
+  @media (max-width: 500px) {
+    .stats-bar { grid-template-columns: 1fr; }
+    .hero-title { font-size: 1.8rem; }
+  }
+
+  /* ─── ANIMATIONS ─── */
+  .fade-in {
+    animation: fadeIn 0.4s ease forwards;
+    opacity: 0;
+  }
+
+  @keyframes fadeIn {
+    to { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; transform: translateY(8px); }
+  }
+
+  .result-section { display: none; }
+  .result-section.visible { display: block; }
+</style>
+</head>
+<body>
+
+<!-- ─── LOADING OVERLAY ─── -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-spinner"></div>
+  <div class="loading-steps">
+    <div class="loading-step" id="step1"><span class="step-icon">◎</span> Consultando Receita Federal / CNPJ.ws</div>
+    <div class="loading-step" id="step2"><span class="step-icon">◎</span> Buscando contratos no PNCP</div>
+    <div class="loading-step" id="step3"><span class="step-icon">◎</span> Verificando sanções CEIS/CNEP</div>
+    <div class="loading-step" id="step4"><span class="step-icon">◎</span> Cruzando sócios e endereços</div>
+    <div class="loading-step" id="step5"><span class="step-icon">◎</span> Calculando score de risco</div>
+    <div class="loading-step" id="step6"><span class="step-icon">◎</span> Construindo grafo de conexões</div>
+  </div>
+</div>
+
+<!-- ─── TOAST ─── -->
+<div class="toast" id="toast">Relatório gerado com sucesso</div>
+
+<!-- ─── HEADER ─── -->
+<header>
+  <a class="logo" href="#">
+    <div class="logo-icon">
+      <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16 2L4 8v8c0 7.7 5.1 14.9 12 17 6.9-2.1 12-9.3 12-17V8L16 2z" fill="rgba(232,168,56,0.1)" stroke="#e8a838" stroke-width="1.5"/>
+        <path d="M11 16l3.5 3.5L21 12" stroke="#e8a838" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="16" cy="16" r="2" fill="rgba(224,62,62,0.8)"/>
+      </svg>
+    </div>
+    <div class="logo-text">Fraud<span>Graph</span> AI</div>
+  </a>
+  <div class="header-status">
+    <div class="status-dot">
+      <div class="dot"></div>
+      Sistema operacional
+    </div>
+    <span>|</span>
+    <span>Fontes: 6 conectadas</span>
+    <span>|</span>
+    <span id="headerTime">—</span>
+  </div>
+  <div class="header-nav">
+    <button class="nav-btn">Dashboard</button>
+    <button class="nav-btn">Histórico</button>
+    <button class="nav-btn" style="border-color:var(--amber);color:var(--amber)">Beta</button>
+  </div>
+</header>
+
+<!-- ─── MAIN ─── -->
+<main>
+
+  <!-- HERO / SEARCH -->
+  <section class="hero">
+    <div class="hero-eyebrow">Sistema de Inteligência Investigativa</div>
+    <h1 class="hero-title">
+      Detecte <em>anomalias</em><br/>em contratos públicos
+    </h1>
+    <p class="hero-subtitle">
+      Análise automatizada de dados públicos: CNPJ, licitações, sócios, sanções e conexões ocultas.
+      Score de risco com evidências rastreáveis.
+    </p>
+
+    <div class="search-wrap">
+      <div class="search-box">
+        <input
+          class="search-input"
+          type="text"
+          id="searchInput"
+          placeholder="00.000.000/0001-00 ou nome da empresa..."
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <button class="search-btn" id="searchBtn" onclick="runSearch()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          Investigar
+        </button>
+      </div>
+      <div class="search-tags">
+        <span class="tag" onclick="fillSearch('CONSTRUTORA ALFA LTDA')">▶ Construtora Alfa Ltda</span>
+        <span class="tag" onclick="fillSearch('11.222.333/0001-44')">▶ 11.222.333/0001-44</span>
+        <span class="tag" onclick="fillSearch('TECH SOLUÇÕES GOVERNO')">▶ Tech Soluções Governo</span>
+        <span class="tag" onclick="fillSearch('DISTRIBUIDORA NEXUS')">▶ Distribuidora Nexus</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS BAR -->
+  <div class="stats-bar">
+    <div class="stat-cell">
+      <div class="stat-label">Empresas analisadas</div>
+      <div class="stat-value">12.847</div>
+      <div class="stat-sub">+234 esta semana</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-label">Contratos monitorados</div>
+      <div class="stat-value amber">R$ 4,2B</div>
+      <div class="stat-sub">87.341 contratos</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-label">Alertas de risco</div>
+      <div class="stat-value red">3.219</div>
+      <div class="stat-sub">Necessitam verificação</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-label">Fontes ativas</div>
+      <div class="stat-value green">6</div>
+      <div class="stat-sub">PNCP, CNPJ, CEIS, CNEP +2</div>
+    </div>
+  </div>
+
+  <!-- ─── RESULT SECTION ─── -->
+  <div class="result-section" id="resultSection">
+
+    <div class="section-label">Resultado da investigação</div>
+
+    <!-- TOP GRID: Company + Risk -->
+    <div class="result-grid">
+
+      <!-- COMPANY CARD -->
+      <div class="company-card fade-in" style="animation-delay:0.05s">
+        <div class="company-header">
+          <div>
+            <div class="company-name" id="resName">CONSTRUTORA ALFA EMPREENDIMENTOS LTDA</div>
+            <div class="company-cnpj" id="resCnpj">CNPJ: 11.222.333/0001-44</div>
+          </div>
+          <div class="status-badge badge-active" id="resSituation">Ativa</div>
+        </div>
+        <div class="company-meta">
+          <div class="meta-item">
+            <div class="meta-key">Abertura</div>
+            <div class="meta-val highlight" id="resAbertura">14/03/2023 — <strong>15 meses</strong></div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-key">Capital Social</div>
+            <div class="meta-val alert" id="resCapital">R$ 80.000,00</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-key">CNAE Principal</div>
+            <div class="meta-val" id="resCnae">41.20-4-00 — Construção de edifícios</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-key">Porte</div>
+            <div class="meta-val" id="resPorte">Microempresa</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-key">Endereço</div>
+            <div class="meta-val" id="resEndereco">Rua das Flores, 123 — São Paulo/SP</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-key">Empresas no endereço</div>
+            <div class="meta-val alert" id="resEndCount">⚠ 23 empresas registradas</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-key">Natureza Jurídica</div>
+            <div class="meta-val" id="resNatureza">Sociedade Limitada</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-key">Total em Contratos</div>
+            <div class="meta-val highlight" id="resContratos">R$ 3.200.000,00</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RISK CARD -->
+      <div class="risk-card fade-in" style="animation-delay:0.1s">
+        <div class="risk-label">Score de risco — FraudGraph AI</div>
+
+        <div class="risk-score-wrap">
+          <div class="score-ring">
+            <svg viewBox="0 0 90 90">
+              <circle class="score-ring-bg" cx="45" cy="45" r="39"/>
+              <circle class="score-ring-fill" id="scoreRing" cx="45" cy="45" r="39"/>
+            </svg>
+            <div class="score-number">
+              <div class="score-num" id="scoreNum">78</div>
+              <div class="score-max">/100</div>
+            </div>
+          </div>
+          <div class="risk-level">
+            <div class="risk-level-label" id="riskLevelLabel">Risco Crítico</div>
+            <div class="risk-level-sub" id="riskLevelSub">
+              Múltiplos indícios de anomalia detectados. Verificação investigativa recomendada antes de qualquer aprovação.
+            </div>
+          </div>
+        </div>
+
+        <div class="flags-list" id="flagsList">
+          <div class="flag-item">
+            <div class="flag-dot critical"></div>
+            <div>
+              <div class="flag-text">Empresa com 15 meses captou R$ 3,2M em contratos públicos</div>
+              <div class="flag-code">NEW_COMPANY_HIGH_CONTRACT · +30pts</div>
+            </div>
+          </div>
+          <div class="flag-item">
+            <div class="flag-dot critical"></div>
+            <div>
+              <div class="flag-text">23 empresas registradas no mesmo endereço</div>
+              <div class="flag-code">SHARED_ADDRESS · +20pts</div>
+            </div>
+          </div>
+          <div class="flag-item">
+            <div class="flag-dot high"></div>
+            <div>
+              <div class="flag-text">Capital social (R$80k) incompatível com volume contratado</div>
+              <div class="flag-code">LOW_CAPITAL_CONTRACT · +15pts</div>
+            </div>
+          </div>
+          <div class="flag-item">
+            <div class="flag-dot high"></div>
+            <div>
+              <div class="flag-text">Sócio alterado 45 dias antes do maior contrato</div>
+              <div class="flag-code">RECENT_PARTNER_CHANGE · +13pts</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── TABS ─── -->
+    <div class="tabs-wrap fade-in" style="animation-delay:0.15s">
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('contracts', this)">Contratos</button>
+        <button class="tab" onclick="switchTab('partners', this)">Sócios</button>
+        <button class="tab" onclick="switchTab('graph', this)">Grafo</button>
+        <button class="tab" onclick="switchTab('sources', this)">Fontes</button>
+      </div>
+
+      <!-- TAB: CONTRACTS -->
+      <div class="tab-panel active" id="tab-contracts" style="padding-top:1.25rem">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Órgão Contratante</th>
+              <th>Objeto</th>
+              <th>Valor</th>
+              <th>Data</th>
+              <th>Modalidade</th>
+              <th>Indício</th>
+            </tr>
+          </thead>
+          <tbody id="contractsBody">
+            <tr>
+              <td><span class="td-agency">Prefeitura Municipal de São Paulo</span></td>
+              <td>Reforma de unidades escolares — Lote 3</td>
+              <td><span class="td-value">R$ 1.800.000</span></td>
+              <td class="td-mono">Jun/2024</td>
+              <td class="td-mono">Pregão Eletr.</td>
+              <td><span class="flag-chip chip-red">● Alto risco</span></td>
+            </tr>
+            <tr>
+              <td><span class="td-agency">Secretaria Estadual de Saúde — SP</span></td>
+              <td>Fornecimento de materiais de construção</td>
+              <td><span class="td-value">R$ 920.000</span></td>
+              <td class="td-mono">Mar/2024</td>
+              <td class="td-mono">Dispensa</td>
+              <td><span class="flag-chip chip-red">● Alto risco</span></td>
+            </tr>
+            <tr>
+              <td><span class="td-agency">DNIT — Ministério Infraestrutura</span></td>
+              <td>Serviços de pavimentação asfáltica</td>
+              <td><span class="td-value">R$ 480.000</span></td>
+              <td class="td-mono">Nov/2023</td>
+              <td class="td-mono">Tomada Preços</td>
+              <td><span class="flag-chip chip-amber">● Verificar</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- TAB: PARTNERS -->
+      <div class="tab-panel" id="tab-partners" style="padding-top:1.25rem">
+        <div class="partners-grid" id="partnersGrid">
+          <div class="partner-card">
+            <div class="partner-avatar">JM</div>
+            <div class="partner-name">JOÃO MARCOS FERREIRA DA SILVA</div>
+            <div class="partner-role">Sócio Administrador · 60%</div>
+            <div class="partner-flags">
+              <span class="flag-chip chip-red">● 12 empresas</span>
+              <span class="flag-chip chip-amber">● Sócio recente</span>
+            </div>
+          </div>
+          <div class="partner-card">
+            <div class="partner-avatar">AC</div>
+            <div class="partner-name">ANA CRISTINA SOUZA BARROS</div>
+            <div class="partner-role">Sócia · 40% · Desde Abr/2024</div>
+            <div class="partner-flags">
+              <span class="flag-chip chip-amber">● Mudança recente</span>
+            </div>
+          </div>
+          <div class="partner-card">
+            <div class="partner-avatar">?</div>
+            <div class="partner-name">PEDRO HENRIQUE COSTA</div>
+            <div class="partner-role">Sócio anterior · Saiu Jan/2024</div>
+            <div class="partner-flags">
+              <span class="flag-chip chip-blue">● Investigar</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: GRAPH -->
+      <div class="tab-panel" id="tab-graph" style="padding-top:1.25rem">
+        <div class="graph-container">
+          <canvas id="graphCanvas" width="800" height="380"></canvas>
+        </div>
+        <div style="margin-top:0.75rem;font-family:var(--code);font-size:0.6rem;color:var(--text-xs);display:flex;gap:1.5rem">
+          <span><span style="color:var(--amber)">●</span> Empresa</span>
+          <span><span style="color:var(--blue)">●</span> Pessoa</span>
+          <span><span style="color:var(--red)">●</span> Endereço compartilhado</span>
+          <span><span style="color:var(--green)">●</span> Órgão público</span>
+        </div>
+      </div>
+
+      <!-- TAB: SOURCES -->
+      <div class="tab-panel" id="tab-sources" style="padding-top:1.25rem">
+        <div class="sources-list">
+          <a class="source-item" href="https://publica.cnpj.ws/cnpj/11222333000144" target="_blank">
+            <span class="source-icon">🏛</span>
+            <div style="flex:1">
+              <div>Receita Federal — Dados Cadastrais CNPJ</div>
+              <div class="source-url">publica.cnpj.ws/cnpj/11222333000144</div>
+            </div>
+            <div class="source-date">08/06/2026</div>
+          </a>
+          <a class="source-item" href="https://pncp.gov.br" target="_blank">
+            <span class="source-icon">📋</span>
+            <div style="flex:1">
+              <div>PNCP — Portal Nacional de Contratações Públicas</div>
+              <div class="source-url">pncp.gov.br/app/contratos?cnpj=11222333000144</div>
+            </div>
+            <div class="source-date">08/06/2026</div>
+          </a>
+          <a class="source-item" href="https://portaldatransparencia.gov.br" target="_blank">
+            <span class="source-icon">🔍</span>
+            <div style="flex:1">
+              <div>Portal da Transparência — Pagamentos a Fornecedores</div>
+              <div class="source-url">portaldatransparencia.gov.br/fornecedores/11222333000144</div>
+            </div>
+            <div class="source-date">07/06/2026</div>
+          </a>
+          <a class="source-item" href="https://portaldatransparencia.gov.br/sancoes/ceis" target="_blank">
+            <span class="source-icon">🚫</span>
+            <div style="flex:1">
+              <div>CEIS — Cadastro de Empresas Inidôneas e Suspensas</div>
+              <div class="source-url">portaldatransparencia.gov.br/sancoes/ceis (sem ocorrência)</div>
+            </div>
+            <div class="source-date">07/06/2026</div>
+          </a>
+          <a class="source-item" href="https://portaldatransparencia.gov.br/sancoes/cnep" target="_blank">
+            <span class="source-icon">⚖</span>
+            <div style="flex:1">
+              <div>CNEP — Cadastro Nacional de Empresas Punidas</div>
+              <div class="source-url">portaldatransparencia.gov.br/sancoes/cnep (sem ocorrência)</div>
+            </div>
+            <div class="source-date">07/06/2026</div>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- REPORT BAR -->
+    <div class="report-bar fade-in" style="animation-delay:0.2s">
+      <div class="report-info">
+        <strong>Investigação concluída</strong> · Score calculado com 4 regras ativas · Dados coletados em 08/06/2026
+      </div>
+      <div class="report-actions">
+        <button class="btn btn-ghost" onclick="showToast('Monitoramento ativado — você será notificado sobre mudanças')">
+          ⟳ &nbsp;Monitorar
+        </button>
+        <button class="btn btn-primary" onclick="showToast('Gerando relatório PDF... (backend necessário para versão completa)')">
+          ↓ &nbsp;Gerar Relatório
+        </button>
+      </div>
+    </div>
+
+    <!-- DISCLAIMER -->
+    <div class="disclaimer">
+      <strong>AVISO LEGAL:</strong> As informações apresentadas neste relatório são derivadas exclusivamente de fontes públicas e têm caráter investigativo e informativo. Os indícios apontados <strong>não constituem acusação, imputação de crime ou declaração de culpa</strong>. O FraudGraph AI é uma ferramenta de análise de risco baseada em dados públicos. Toda investigação deve ser conduzida por profissionais habilitados com observância das normas legais aplicáveis. Uso indevido das informações é de responsabilidade exclusiva do usuário.
+    </div>
+
+  </div><!-- /result-section -->
+
+</main>
+
+<!-- ─── JAVASCRIPT ─── -->
+<script>
+  // ─── CLOCK ───
+  function updateClock() {
+    const el = document.getElementById('headerTime');
+    if (el) {
+      const now = new Date();
+      el.textContent = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+  }
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  // ─── FILL SEARCH ───
+  function fillSearch(val) {
+    document.getElementById('searchInput').value = val;
+    document.getElementById('searchInput').focus();
+  }
+
+  // ─── ENTER KEY ───
+  document.getElementById('searchInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') runSearch();
+  });
+
+  // ─── SEARCH / LOADING SIMULATION ───
+  function runSearch() {
+    const input = document.getElementById('searchInput').value.trim();
+    if (!input) return;
+
+    const overlay = document.getElementById('loadingOverlay');
+    overlay.classList.add('active');
+
+    const steps = ['step1','step2','step3','step4','step5','step6'];
+    const icons = ['✓','✓','✓','✓','✓','✓'];
+    let i = 0;
+
+    // Reset
+    steps.forEach(s => {
+      const el = document.getElementById(s);
+      el.classList.remove('done','active');
+    });
+
+    function nextStep() {
+      if (i < steps.length) {
+        if (i > 0) {
+          const prev = document.getElementById(steps[i-1]);
+          prev.classList.remove('active');
+          prev.classList.add('done');
+          prev.querySelector('.step-icon').textContent = '✓';
+        }
+        const cur = document.getElementById(steps[i]);
+        cur.classList.add('active');
+        i++;
+        setTimeout(nextStep, 600 + Math.random() * 400);
+      } else {
+        const last = document.getElementById(steps[steps.length-1]);
+        last.classList.remove('active');
+        last.classList.add('done');
+        last.querySelector('.step-icon').textContent = '✓';
+        setTimeout(() => {
+          overlay.classList.remove('active');
+          showResults(input);
+        }, 400);
+      }
+    }
+
+    nextStep();
+  }
+
+  // ─── SHOW RESULTS ───
+  function showResults(query) {
+    const isCnpj = /\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}/.test(query);
+    const section = document.getElementById('resultSection');
+    section.classList.add('visible');
+
+    // Scroll to results
+    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    // Update ring animation
+    setTimeout(() => {
+      animateRing(78);
+    }, 300);
+
+    // Draw graph
+    setTimeout(() => {
+      if (document.getElementById('tab-graph').classList.contains('active')) {
+        drawGraph();
+      }
+    }, 500);
+
+    showToast('Análise concluída — 4 indícios detectados');
+  }
+
+  // ─── SCORE RING ANIMATION ───
+  function animateRing(score) {
+    const circumference = 2 * Math.PI * 39;
+    const offset = circumference * (1 - score / 100);
+    const ring = document.getElementById('scoreRing');
+    ring.style.strokeDasharray = circumference;
+    ring.style.strokeDashoffset = circumference;
+    ring.getBoundingClientRect();
+    ring.style.transition = 'stroke-dashoffset 1.2s cubic-bezier(0.4,0,0.2,1)';
+    ring.style.strokeDashoffset = offset;
+
+    // Color by score
+    if (score >= 76) ring.style.stroke = 'var(--red)';
+    else if (score >= 51) ring.style.stroke = 'var(--amber)';
+    else if (score >= 26) ring.style.stroke = 'var(--blue)';
+    else ring.style.stroke = 'var(--green)';
+
+    // Animate number
+    let cur = 0;
+    const numEl = document.getElementById('scoreNum');
+    const interval = setInterval(() => {
+      cur += Math.ceil(score / 30);
+      if (cur >= score) { cur = score; clearInterval(interval); }
+      numEl.textContent = cur;
+    }, 40);
+  }
+
+  // ─── TABS ───
+  function switchTab(name, btn) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + name).classList.add('active');
+    if (name === 'graph') setTimeout(drawGraph, 50);
+  }
+
+  // ─── GRAPH CANVAS ───
+  function drawGraph() {
+    const canvas = document.getElementById('graphCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const W = canvas.offsetWidth;
+    const H = canvas.offsetHeight;
+    canvas.width = W;
+    canvas.height = H;
+
+    ctx.clearRect(0, 0, W, H);
+
+    // Background grid
+    ctx.strokeStyle = 'rgba(30,45,61,0.4)';
+    ctx.lineWidth = 1;
+    for (let x = 0; x < W; x += 40) {
+      ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke();
+    }
+    for (let y = 0; y < H; y += 40) {
+      ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+    }
+
+    const cx = W / 2, cy = H / 2;
+
+    // Nodes
+    const nodes = [
+      { x: cx,       y: cy,       r: 22, color: '#e8a838', label: 'ALFA LTDA',       sub: 'Empresa' },
+      { x: cx-180,   y: cy-90,    r: 16, color: '#3da9fc', label: 'JOÃO M.',          sub: 'Sócio' },
+      { x: cx+170,   y: cy-80,    r: 16, color: '#3da9fc', label: 'ANA C.',           sub: 'Sócia' },
+      { x: cx-160,   y: cy+100,   r: 14, color: '#e03e3e', label: 'R. FLORES 123',    sub: 'Endereço' },
+      { x: cx+160,   y: cy+100,   r: 18, color: '#2ecc71', label: 'PREF. SP',         sub: 'Órgão' },
+      { x: cx,       y: cy-160,   r: 13, color: '#3da9fc', label: 'PEDRO H.',         sub: 'Ex-sócio' },
+      { x: cx-300,   y: cy+20,    r: 11, color: '#e8a838', label: 'BETA OBRAS',       sub: 'Empresa' },
+      { x: cx+290,   y: cy+20,    r: 11, color: '#e8a838', label: 'NEXUS CONSTR.',    sub: 'Empresa' },
+    ];
+
+    // Edges
+    const edges = [
+      { from: 0, to: 1, color: 'rgba(61,169,252,0.3)',  label: 'SÓCIO' },
+      { from: 0, to: 2, color: 'rgba(61,169,252,0.3)',  label: 'SÓCIA' },
+      { from: 0, to: 3, color: 'rgba(224,62,62,0.4)',   label: 'ENDEREÇO' },
+      { from: 0, to: 4, color: 'rgba(46,204,113,0.3)',  label: 'CONTRATO' },
+      { from: 1, to: 5, color: 'rgba(61,169,252,0.2)',  label: '' },
+      { from: 1, to: 6, color: 'rgba(232,168,56,0.25)', label: 'TAMBÉM SÓCIO' },
+      { from: 2, to: 7, color: 'rgba(232,168,56,0.25)', label: 'TAMBÉM SÓCIA' },
+      { from: 3, to: 6, color: 'rgba(224,62,62,0.25)',  label: 'MESMO END.' },
+      { from: 3, to: 7, color: 'rgba(224,62,62,0.25)',  label: 'MESMO END.' },
+    ];
+
+    // Draw edges
+    edges.forEach(e => {
+      const a = nodes[e.from], b = nodes[e.to];
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.strokeStyle = e.color;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      if (e.label) {
+        const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+        ctx.font = '9px DM Mono, monospace';
+        ctx.fillStyle = 'rgba(90,112,128,0.8)';
+        ctx.textAlign = 'center';
+        ctx.fillText(e.label, mx, my - 4);
+      }
+    });
+
+    // Draw nodes
+    nodes.forEach(n => {
+      // Glow
+      const grd = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r * 2.5);
+      grd.addColorStop(0, n.color + '22');
+      grd.addColorStop(1, 'transparent');
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, n.r * 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = grd;
+      ctx.fill();
+
+      // Circle
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+      ctx.fillStyle = '#0c1117';
+      ctx.fill();
+      ctx.strokeStyle = n.color;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Label
+      ctx.font = `bold ${Math.max(8, n.r * 0.55)}px Syne, sans-serif`;
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const shortLabel = n.label.length > 9 ? n.label.slice(0,9)+'…' : n.label;
+      ctx.fillText(shortLabel, n.x, n.y - 1);
+
+      // Sub
+      ctx.font = '8px DM Mono, monospace';
+      ctx.fillStyle = n.color;
+      ctx.fillText(n.sub, n.x, n.y + n.r + 12);
+    });
+  }
+
+  // ─── TOAST ───
+  function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 3500);
+  }
+
+  // ─── HOVER ON CANVAS (basic) ───
+  document.getElementById('graphCanvas')?.addEventListener('mousemove', function(e) {
+    this.style.cursor = 'grab';
+  });
+</script>
+</body>
+</html>
